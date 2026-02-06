@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Schulte Focus Pro | Brain Training</title>
+    <!-- AdSense Script (Replace with your Client ID) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #1a1a1a;
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --accent: #059669;
+            --error: #dc2626;
+            --cell-size: 15vw;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --secondary: #94a3b8;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        /* --- Header & Stats --- */
+        header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- Game Board --- */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        #grid {
+            display: grid;
+            gap: 8px;
+            margin: 0 auto;
+            max-width: 95vw;
+            max-height: 60vh;
+        }
+
+        .cell {
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition);
+            aspect-ratio: 1/1;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .cell:active { transform: scale(0.9); background: var(--primary); color: white; }
+        .cell.correct { background: var(--accent); border-color: var(--accent); color: white; visibility: hidden; opacity: 0; }
+        .cell.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: var(--error); color: var(--error); }
+
+        /* --- UI Components --- */
+        .progress-container { width: 100%; height: 6px; background: #ddd; position: absolute; top: 0; }
+        #progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.3s; }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        /* --- AdSense Areas --- */
+        .ad-banner {
+            width: 100%;
+            min-height: 50px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #999;
+            margin-top: auto;
+        }
+
+        /* --- AI Distraction Animations --- */
+        .distraction-fade { animation: pulseFade 3s infinite; }
+        .distraction-rotate { animation: slowRotate 10s infinite linear; }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        @keyframes pulseFade { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes slowRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="stats-bar">
+        <span>LVL: <span id="lvl-display">1</span></span>
+        <span>NEXT: <span id="target-num">1</span></span>
+    </div>
+    <div id="timer">00.00s</div>
+    <div id="theme-toggle" style="cursor:pointer">🌓</div>
+</header>
+
+<div class="progress-container">
+    <div id="progress-bar"></div>
+</div>
+
+<main id="game-container">
+    <div id="grid"></div>
+</main>
+
+<!-- Bottom Banner Ad -->
+<div class="ad-banner">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="XXXXXXXXXX"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- Modal for Level Complete -->
+<div id="level-modal" class="modal">
+    <div class="modal-content">
+        <h2 id="modal-title">Level Complete!</h2>
+        <p id="modal-stats">Time: 0s | Mistakes: 0</p>
+        <div id="star-rating">⭐⭐⭐</div>
+        
+        <!-- Interstitial Ad Placeholder -->
+        <div style="margin: 15px 0; background: #f9f9f9; min-height: 100px;">
+            <p style="font-size: 10px;">Advertisement</p>
+            <ins class="adsbygoogle"
+                 style="display:inline-block;width:300px;height:100px"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="XXXXXXXXXX"></ins>
+        </div>
+
+        <button onclick="game.nextLevel()">Play Next Level</button>
+    </div>
+</div>
+
+<script>
+/**
+ * SCHULTE FOCUS PRO - Game Logic
+ */
+const game = {
+    level: 1,
+    currentGridSize: 3,
+    nextNumber: 1,
+    maxNumber: 9,
+    startTime: null,
+    timerInterval: null,
+    mistakes: 0,
+    history: JSON.parse(localStorage.getItem('schulte_pro_data')) || { level: 1, bestTimes: {} },
+    
+    // AI Difficulty Engine
+    ai: {
+        performanceIndex: 1.0, // 1.0 is neutral
+        avgReactionTime: 0,
+        difficultyMultiplier: 1.0,
+        
+        updatePerformance(time, mistakes) {
+            // Lower is better. Base expectation: 1.5s per tap
+            const expectedTime = game.maxNumber * 1.5;
+            const performanceRatio = expectedTime / time;
+            
+            if (mistakes === 0 && performanceRatio > 1.2) {
+                this.performanceIndex += 0.2;
+            } else if (mistakes > 2 || performanceRatio < 0.8) {
+                this.performanceIndex = Math.max(1.0, this.performanceIndex - 0.1);
+            }
+        },
+
+        getDistractionLevel() {
+            return this.performanceIndex > 1.5 ? 'rotate' : (this.performanceIndex > 1.2 ? 'fade' : 'none');
+        }
+    },
+
+    init() {
+        this.level = this.history.level;
+        this.setupTheme();
+        this.startLevel();
+        
+        document.getElementById('theme-toggle').onclick = () => {
+            const theme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('schulte_theme', theme);
+        };
+    },
+
+    setupTheme() {
+        const savedTheme = localStorage.getItem('schulte_theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+    },
+
+    startLevel() {
+        // Calculate Grid Size based on Level
+        if (this.level === 1) this.currentGridSize = 3;
+        else if (this.level === 2) this.currentGridSize = 4;
+        else if (this.level === 3) this.currentGridSize = 5;
+        else if (this.level === 4) this.currentGridSize = 6;
+        else this.currentGridSize = Math.min(8, 4 + Math.floor(this.level / 3));
+
+        this.maxNumber = this.currentGridSize * this.currentGridSize;
+        this.nextNumber = 1;
+        this.mistakes = 0;
+        this.updateStats();
+        this.renderGrid();
+        this.startTimer();
+        
+        document.getElementById('level-modal').style.display = 'none';
+    },
+
+    renderGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.innerHTML = '';
+        gridEl.style.gridTemplateColumns = `repeat(${this.currentGridSize}, 1fr)`;
+
+        // Distraction Logic
+        const distraction = this.ai.getDistractionLevel();
+        if (distraction === 'rotate') gridEl.className = 'distraction-rotate';
+        else gridEl.className = '';
+
+        const nums = Array.from({length: this.maxNumber}, (_, i) => i + 1);
+        this.shuffle(nums);
+
+        nums.forEach(n => {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            if (distraction === 'fade' && Math.random() > 0.7) cell.classList.add('distraction-fade');
+            cell.textContent = n;
+            cell.onclick = (e) => this.handleTap(n, e.target);
+            gridEl.appendChild(cell);
+        });
+
+        // Dynamic Cell Sizing
+        const containerSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.6);
+        const gap = 8;
+        const totalGap = gap * (this.currentGridSize - 1);
+        const cellSize = (containerSize - totalGap) / this.currentGridSize;
+        
+        document.querySelectorAll('.cell').forEach(c => {
+            c.style.width = `${cellSize}px`;
+            c.style.height = `${cellSize}px`;
+            c.style.fontSize = `${cellSize * 0.4}px`;
+        });
+    },
+
+    handleTap(num, element) {
+        if (num === this.nextNumber) {
+            element.classList.add('correct');
+            this.nextNumber++;
+            this.updateStats();
+            this.playAudio(true);
+            
+            if (this.nextNumber > this.maxNumber) {
+                this.completeLevel();
+            }
+        } else {
+            this.mistakes++;
+            element.classList.add('shake');
+            this.playAudio(false);
+            setTimeout(() => element.classList.remove('shake'), 400);
+            
+            // Penalty: Add 1 second to timer
+            this.startTime -= 1000;
+        }
+    },
+
+    completeLevel() {
+        clearInterval(this.timerInterval);
+        const timeTaken = (Date.now() - this.startTime) / 1000;
+        
+        this.ai.updatePerformance(timeTaken, this.mistakes);
+        
+        // Save Progress
+        this.level++;
+        this.history.level = this.level;
+        localStorage.setItem('schulte_pro_data', JSON.stringify(this.history));
+
+        // Show Modal
+        const modal = document.getElementById('level-modal');
+        const statsTxt = document.getElementById('modal-stats');
+        const stars = document.getElementById('star-rating');
+        
+        modal.style.display = 'flex';
+        statsTxt.textContent = `Time: ${timeTaken.toFixed(2)}s | Mistakes: ${this.mistakes}`;
+        
+        // Rating Logic
+        let rating = '⭐';
+        if (this.mistakes === 0 && timeTaken < this.maxNumber * 1.2) rating = '⭐⭐⭐';
+        else if (this.mistakes < 3) rating = '⭐⭐';
+        stars.textContent = rating;
+
+        // Refresh Ads
+        if (window.adsbygoogle) {
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        }
+    },
+
+    nextLevel() {
+        this.startLevel();
+    },
+
+    updateStats() {
+        document.getElementById('lvl-display').textContent = this.level;
+        document.getElementById('target-num').textContent = this.nextNumber;
+        const progress = ((this.nextNumber - 1) / this.maxNumber) * 100;
+        document.getElementById('progress-bar').style.width = `${progress}%`;
+    },
+
+    startTimer() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.startTime = Date.now();
+        this.timerInterval = setInterval(() => {
+            const elapsed = (Date.now() - this.startTime) / 1000;
+            document.getElementById('timer').textContent = elapsed.toFixed(2) + 's';
+        }, 50);
+    },
+
+    shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    },
+
+    playAudio(isCorrect) {
+        // Optional: Implement Web Audio API for feedback
+        // Leaving as a hook for production sound assets
+    }
+};
+
+// Start Game
+window.onload = () => game.init();
+
+// Handle Orientation Changes
+window.onresize = () => game.renderGrid();
+</script>
+
+</body>
+</html>
